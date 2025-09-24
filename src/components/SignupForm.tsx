@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxS5kIJqb4eOkNx8HdnpLQevtkcmcJr0Cr2tMkdURVee2wDz_6axgqv7_z8ttxoXZDX/exec';
 
 const SignupForm: React.FC<{ onSignupSuccess: () => void, onSwitchToLogin: () => void }> = ({ onSignupSuccess, onSwitchToLogin }) => {
   const [username, setUsername] = useState('');
@@ -14,7 +13,7 @@ const SignupForm: React.FC<{ onSignupSuccess: () => void, onSwitchToLogin: () =>
     setError('');
 
     try {
-      const response = await fetch(`${SCRIPT_URL}?path=signup`, {
+      const response = await fetch(`${import.meta.env.VITE_SCRIPT_URL}?path=signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain',

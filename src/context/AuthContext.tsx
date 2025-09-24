@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxS5kIJqb4eOkNx8HdnpLQevtkcmcJr0Cr2tMkdURVee2wDz_6axgqv7_z8ttxoXZDX/exec';
 
 interface User {
   username: string;
@@ -44,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${SCRIPT_URL}?path=login`, {
+      const response = await fetch(`${import.meta.env.VITE_SCRIPT_URL}?path=login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain',

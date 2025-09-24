@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Filter } from 'lucide-react';
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxS5kIJqb4eOkNx8HdnpLQevtkcmcJr0Cr2tMkdURVee2wDz_6axgqv7_z8ttxoXZDX/exec';
-
 interface TemperatureReading {
   id: string;
   roomId: string;
@@ -13,29 +11,36 @@ interface TemperatureReading {
 
 const DataTable: React.FC = () => {
   const [readings, setReadings] = useState<TemperatureReading[]>([]);
-  const [filteredReadings, setFilteredReadings] = useState<TemperatureReading[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRoom, setSelectedRoom] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const [totalCount, setTotalCount] = useState(0);
 
+  const itemsPerPage = 5;
   const ROOMS = ['B206', 'B207', 'B208', 'B209', 'B210', 'Tent-2', 'Tent-3'];
 
   useEffect(() => {
-    fetchTemperatureData();
-  }, []);
+    fetchTemperatureData(currentPage, selectedRoom);
+  }, [currentPage, selectedRoom]);
 
-  useEffect(() => {
-    filterReadings();
-  }, [readings, selectedRoom]);
-
-  const fetchTemperatureData = async () => {
+  const fetchTemperatureData = async (page: number, room: string) => {
+    setLoading(true);
     try {
-      const response = await fetch(`${SCRIPT_URL}?path=temperature-data`, { redirect: 'follow' });
+      const offset = (page - 1) * itemsPerPage;
+      let url = `${import.meta.env.VITE_SCRIPT_URL}?path=temperature-data&offset=${offset}&limit=${itemsPerPage}`;
+
+      const response = await fetch(url, { redirect: 'follow' });
 
       if (response.ok) {
         const data = await response.json();
-        setReadings(data.readings);
+        let filtered = data.readings;
+
+        if (room !== 'all') {
+          filtered = filtered.filter((r: TemperatureReading) => r.roomId === room);
+        }
+
+        setReadings(filtered);
+        setTotalCount(data.totalCount);
       }
     } catch (error) {
       console.error('Error fetching temperature data:', error);
@@ -44,21 +49,10 @@ const DataTable: React.FC = () => {
     }
   };
 
-  const filterReadings = () => {
-    let filtered = readings;
-
-    if (selectedRoom !== 'all') {
-      filtered = filtered.filter(r => r.roomId === selectedRoom);
-    }
-
-    setFilteredReadings(filtered);
-    setCurrentPage(1);
-  };
-
   const exportData = () => {
     const csvContent = [
       ['Room ID', 'Temperature (°C)', 'Status', 'Timestamp'],
-      ...filteredReadings.map(reading => [
+      ...readings.map(reading => [
         reading.roomId,
         reading.temperature.toString(),
         reading.status,
@@ -91,12 +85,7 @@ const DataTable: React.FC = () => {
     );
   };
 
-  const paginatedReadings = filteredReadings.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const totalPages = Math.ceil(filteredReadings.length / itemsPerPage);
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   if (loading) {
     return (
@@ -117,7 +106,10 @@ const DataTable: React.FC = () => {
             <Filter className="h-4 w-4 text-gray-500" />
             <select
               value={selectedRoom}
-              onChange={(e) => setSelectedRoom(e.target.value)}
+              onChange={(e) => {
+                setSelectedRoom(e.target.value);
+                setCurrentPage(1); // reset to page 1 on filter change
+              }}
               className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Rooms</option>
@@ -140,35 +132,19 @@ const DataTable: React.FC = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Room ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Temperature
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Timestamp
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temperature</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedReadings.map((reading) => (
+            {readings.map((reading) => (
               <tr key={reading.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  Room {reading.roomId}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {reading.temperature}°C
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {getStatusBadge(reading.status)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(reading.timestamp).toLocaleString()}
-                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Room {reading.roomId}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.temperature}°C</td>
+                <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(reading.status)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(reading.timestamp).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
@@ -179,7 +155,7 @@ const DataTable: React.FC = () => {
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6">
           <div className="text-sm text-gray-700">
-            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredReadings.length)} of {filteredReadings.length} results
+            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} results
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -198,8 +174,8 @@ const DataTable: React.FC = () => {
                     key={pageNum}
                     onClick={() => setCurrentPage(pageNum)}
                     className={`px-3 py-1 rounded-md text-sm ${currentPage === pageNum
-                        ? 'bg-blue-600 text-white'
-                        : 'border border-gray-300 hover:bg-gray-50'
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-gray-300 hover:bg-gray-50'
                       }`}
                   >
                     {pageNum}

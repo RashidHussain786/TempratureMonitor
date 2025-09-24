@@ -30,7 +30,6 @@ function getSheet(name) {
     sheet = spreadsheet.insertSheet(name);
     if (name === 'users') {
       sheet.appendRow(['username', 'password', 'role']);
-      sheet.appendRow(['admin', hashPassword('admin123'), 'admin']);
     } else if (name === 'temperatures') {
       sheet.appendRow(['id', 'roomId', 'temperature', 'timestamp', 'status']);
     }
@@ -64,16 +63,30 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({ rooms: roomSummaries, totalReadings: data.length - 1, lastSystemUpdate: new Date().toISOString() })).setMimeType(ContentService.MimeType.JSON);
   } else if (path === 'temperature-data') {
     const tempSheet = getSheet('temperatures');
-    const data = tempSheet.getDataRange().getValues();
-    data.shift(); // remove header
-    const readings = data.map(row => ({
-      id: row[0],
-      roomId: row[1],
-      temperature: row[2],
-      timestamp: row[3],
-      status: row[4]
-    }));
-    return ContentService.createTextOutput(JSON.stringify({ readings })).setMimeType(ContentService.MimeType.JSON);
+    const offset = parseInt(e.parameter.offset || '0');
+    const limit = parseInt(e.parameter.limit || '3'); // Default limit
+
+    const lastRow = tempSheet.getLastRow();
+    const totalCount = lastRow > 1 ? lastRow - 1 : 0; // Exclude header row
+
+    let readings = [];
+    if (totalCount > 0) {
+      // Data starts from row 2 (after header)
+      const startRow = 2 + offset;
+      const numRows = Math.min(limit, totalCount - offset);
+
+      if (numRows > 0) {
+        const data = tempSheet.getRange(startRow, 1, numRows, 5).getValues();
+        readings = data.map(row => ({
+          id: row[0],
+          roomId: row[1],
+          temperature: row[2],
+          timestamp: row[3],
+          status: row[4]
+        }));
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ readings, totalCount })).setMimeType(ContentService.MimeType.JSON);
   } else if (path === 'rooms') {
     const rooms = ['B206', 'B207', 'B208', 'B209', 'B210', 'Tent-2', 'Tent-3'];
     return ContentService.createTextOutput(JSON.stringify({ rooms })).setMimeType(ContentService.MimeType.JSON);
@@ -105,7 +118,7 @@ function doPost(e) {
     const userSheet = getSheet('users');
     const users = userSheet.getDataRange().getValues();
     for (let i = 1; i < users.length; i++) {
-      if (users[i][0] === username) {
+      if (users[i][0].toLowerCase() === username.toLowerCase()) {
         return ContentService.createTextOutput(JSON.stringify({ error: 'User already exists' })).setMimeType(ContentService.MimeType.JSON);
       }
     }

@@ -12,7 +12,6 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxS5kIJqb4eOkNx8HdnpLQevtkcmcJr0Cr2tMkdURVee2wDz_6axgqv7_z8ttxoXZDX/exec';
 
 ChartJS.register(
   CategoryScale,
@@ -46,7 +45,7 @@ const TemperatureChart: React.FC = () => {
 
   const fetchTemperatureData = async () => {
     try {
-      const url = `${SCRIPT_URL}?path=temperature-data`;
+      const url = `${import.meta.env.VITE_SCRIPT_URL}?path=temperature-data`;
 
       const response = await fetch(url, { redirect: 'follow' });
 
