@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Filter } from 'lucide-react';
+import { Filter } from 'lucide-react';
 
 interface TemperatureReading {
   id: string;
@@ -32,28 +32,6 @@ const DataTable: React.FC<DataTableProps> = ({
   itemsPerPage,
   rooms,
 }) => {
-
-  const exportData = () => {
-    const csvContent = [
-      ['Room ID', 'Temperature (°C)', 'Status', 'Timestamp'],
-      ...readings.map(reading => [
-        reading.roomId,
-        reading.temperature.toString(),
-        reading.status,
-        new Date(reading.timestamp).toLocaleString()
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `temperature-data-${selectedRoom}-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -99,13 +77,6 @@ const DataTable: React.FC<DataTableProps> = ({
               ))}
             </select>
           </div>
-          <button
-            onClick={exportData}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-          >
-            <Download className="h-4 w-4" />
-            <span>Export CSV</span>
-          </button>
         </div>
       </div>
 

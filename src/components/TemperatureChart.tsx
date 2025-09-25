@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,6 +11,7 @@ import {
   TimeScale,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import 'chartjs-adapter-date-fns';
 
 ChartJS.register(
   CategoryScale,
@@ -32,14 +33,55 @@ interface TemperatureReading {
 }
 
 interface TemperatureChartProps {
-  readings: TemperatureReading[] | null;
-  loading: boolean;
-  selectedRoom: string;
-  setSelectedRoom: (room: string) => void;
   rooms: string[];
 }
 
-const TemperatureChart: React.FC<TemperatureChartProps> = ({ readings, loading, selectedRoom, setSelectedRoom, rooms }) => {
+const TemperatureChart: React.FC<TemperatureChartProps> = ({ rooms }) => {
+  const [readings, setReadings] = useState<TemperatureReading[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedRoom, setSelectedRoom] = useState('all');
+  const [dateRange, setDateRange] = useState('7d');
+
+  useEffect(() => {
+    fetchData();
+  }, [selectedRoom, dateRange]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const now = new Date();
+      let startDate = new Date();
+
+      switch (dateRange) {
+        case '24h':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setDate(now.getDate() - 30);
+          break;
+      }
+
+      let url = `${import.meta.env.VITE_SCRIPT_URL}?path=v2-temperature-data&startDate=${startDate.toISOString()}`;
+      if (selectedRoom !== 'all') {
+        url += `&roomId=${selectedRoom}`;
+      }
+
+      const response = await fetch(url, { redirect: 'follow' });
+      if (response.ok) {
+        const data = await response.json();
+        setReadings(data.readings || []);
+      } else {
+        console.error('Error fetching chart data');
+      }
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getChartData = () => {
     if (!readings) {
@@ -56,50 +98,22 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ readings, loading, 
       'Tent-3': 'rgb(75, 192, 192)', // teal
     };
 
-    if (selectedRoom !== 'all') {
+    const datasets = (selectedRoom === 'all' ? rooms : [selectedRoom]).map(roomId => {
       const roomReadings = readings
-        .filter(r => r.roomId === selectedRoom)
+        .filter(r => r.roomId === roomId)
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
       return {
-        labels: roomReadings.map(r => new Date(r.timestamp).toLocaleTimeString()),
-        datasets: [{
-          label: `Room ${selectedRoom}`,
-          data: roomReadings.map(r => r.temperature),
-          borderColor: colors[selectedRoom as keyof typeof colors],
-          backgroundColor: colors[selectedRoom as keyof typeof colors] + '20',
-          fill: false,
-          tension: 0.1,
-        }]
-      };
-    }
-
-    const datasets = rooms.map(roomId => {
-      const roomReadings = readings
-        .filter(r => r.roomId === roomId)
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-        .slice(-20); // Last 20 readings per room
-
-      return {
         label: `Room ${roomId}`,
-        data: roomReadings.map(r => r.temperature),
-        borderColor: colors[roomId as keyof typeof colors],
-        backgroundColor: colors[roomId as keyof typeof colors] + '20',
+        data: roomReadings.map(r => ({ x: new Date(r.timestamp).getTime(), y: r.temperature })),
+        borderColor: colors[roomId as keyof typeof colors] || '#ccc',
+        backgroundColor: (colors[roomId as keyof typeof colors] || '#ccc') + '20',
         fill: false,
         tension: 0.1,
       };
     });
 
-    // Use timestamps from the most recent room data for labels
-    const allTimestamps = readings
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-      .slice(-20)
-      .map(r => new Date(r.timestamp).toLocaleTimeString());
-
-    return {
-      labels: allTimestamps,
-      datasets
-    };
+    return { datasets };
   };
 
   const options = {
@@ -122,10 +136,16 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ readings, loading, 
           display: true,
           text: 'Temperature (°C)'
         },
-        min: 16,
-        max: 28,
       },
       x: {
+        type: 'time' as const,
+        time: {
+          unit: 'hour' as const,
+          tooltipFormat: 'MMM d, yyyy, h:mm a',
+          displayFormats: {
+            hour: 'h:mm a'
+          }
+        },
         title: {
           display: true,
           text: 'Time'
@@ -134,20 +154,28 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ readings, loading, 
     },
   };
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Temperature Charts</h2>
+        <div className="flex items-center space-x-2">
+          <h2 className="text-xl font-semibold text-gray-900">Temperature Charts</h2>
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+            {[
+              { value: '24h', label: '24H' },
+              { value: '7d', label: '7D' },
+              { value: '30d', label: '30D' },
+            ].map(range => (
+              <button
+                key={range.value}
+                onClick={() => setDateRange(range.value)}
+                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors duration-200 ${
+                  dateRange === range.value ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:bg-gray-200'
+                }`}>
+                {range.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <select
           value={selectedRoom}
           onChange={(e) => setSelectedRoom(e.target.value)}
@@ -160,7 +188,12 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ readings, loading, 
         </select>
       </div>
 
-      <div className="h-96">
+      <div className="h-96 relative">
+        {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 z-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        )}
         <Line data={getChartData()} options={options} />
       </div>
     </div>

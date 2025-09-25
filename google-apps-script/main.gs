@@ -37,11 +37,83 @@ function getSheet(name) {
   return sheet;
 }
 
+function getTemperatureReadings(filters = {}) {
+  const { roomId, startDate, endDate } = filters;
+  const sheet = getSheet('temperatures');
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData.shift(); // Remove header row
+
+  let filteredData = allData;
+
+  // Apply filters
+  if (roomId && roomId !== 'all') {
+    filteredData = filteredData.filter(row => row[1] === roomId);
+  }
+  if (startDate) {
+    filteredData = filteredData.filter(row => new Date(row[3]) >= new Date(startDate));
+  }
+  if (endDate) {
+    filteredData = filteredData.filter(row => new Date(row[3]) <= new Date(endDate));
+  }
+
+  // Map to object format
+  return filteredData.map(row => {
+    let status = 'normal';
+    if (row[2] > 24) status = 'hot';
+    else if (row[2] < 18) status = 'cold';
+    return {
+      id: row[0],
+      roomId: row[1],
+      temperature: row[2],
+      timestamp: row[3],
+      status: status
+    };
+  });
+}
+
 function doGet(e) {
   
   const path = e.parameter.path;
   
-  if (path === 'dashboard-summary') {
+  if (path === 'v2-dashboard-summary') {
+    const tempSheet = getSheet('temperatures');
+    const data = tempSheet.getDataRange().getValues();
+    data.shift(); // remove headers
+
+    const latestReadings = {};
+    data.forEach(row => {
+        const roomId = row[1];
+        const timestamp = new Date(row[3]);
+
+        if (!latestReadings[roomId] || timestamp > new Date(latestReadings[roomId][3])) {
+            latestReadings[roomId] = row;
+        }
+    });
+
+    const rooms = ['B206', 'B207', 'B208', 'B209', 'B210', 'Tent-2', 'Tent-3']; // hardcoded
+    const roomSummaries = rooms.map(roomId => {
+        const latestReading = latestReadings[roomId];
+        let status = 'normal';
+        if (latestReading && latestReading[2] > 24) status = 'hot';
+        else if (latestReading && latestReading[2] < 18) status = 'cold';
+
+        return {
+            roomId,
+            currentTemp: latestReading ? latestReading[2] : null,
+            status: latestReading ? status : 'no_data',
+            lastUpdate: latestReading ? latestReading[3] : null
+        };
+    });
+
+    const totalReadings = tempSheet.getLastRow() - 1;
+
+    return ContentService.createTextOutput(JSON.stringify({
+        rooms: roomSummaries,
+        totalReadings: totalReadings,
+        lastSystemUpdate: new Date().toISOString()
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } else if (path === 'dashboard-summary') {
     const tempSheet = getSheet('temperatures');
     const data = tempSheet.getDataRange().getValues();
     const rooms = ['B206', 'B207', 'B208', 'B209', 'B210', 'Tent-2', 'Tent-3'];
@@ -61,6 +133,23 @@ function doGet(e) {
     });
 
     return ContentService.createTextOutput(JSON.stringify({ rooms: roomSummaries, totalReadings: data.length - 1, lastSystemUpdate: new Date().toISOString() })).setMimeType(ContentService.MimeType.JSON);
+  } else if (path === 'v2-temperature-data') {
+    const { roomId, startDate, endDate, offset = '0', limit } = e.parameter;
+
+    const filters = { roomId, startDate, endDate };
+    const allFilteredReadings = getTemperatureReadings(filters);
+
+    const totalCount = allFilteredReadings.length;
+
+    // Apply pagination
+    const startIndex = parseInt(offset);
+    const endIndex = limit ? startIndex + parseInt(limit) : totalCount;
+    const paginatedReadings = allFilteredReadings.slice(startIndex, endIndex);
+
+    return ContentService.createTextOutput(JSON.stringify({
+        readings: paginatedReadings,
+        totalCount: totalCount
+    })).setMimeType(ContentService.MimeType.JSON);
   } else if (path === 'temperature-data') {
     const tempSheet = getSheet('temperatures');
     const offset = parseInt(e.parameter.offset || '0');

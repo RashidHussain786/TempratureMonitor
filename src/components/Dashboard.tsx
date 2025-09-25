@@ -38,10 +38,6 @@ const Dashboard: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [rooms, setRooms] = useState<string[]>(['B206', 'B207', 'B208', 'B209', 'B210', 'Tent-2', 'Tent-3']);
 
-  const [chartReadings, setChartReadings] = useState<TemperatureReading[] | null>(null);
-  const [chartLoading, setChartLoading] = useState(false);
-  const [chartSelectedRoom, setChartSelectedRoom] = useState<string>('all');
-
   const [tableReadings, setTableReadings] = useState<TemperatureReading[]>([]);
   const [tableLoading, setTableLoading] = useState(false);
   const [tableSelectedRoom, setTableSelectedRoom] = useState<string>('all');
@@ -53,7 +49,7 @@ const Dashboard: React.FC = () => {
     if (isRefresh) setRefreshing(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_SCRIPT_URL}?path=dashboard-summary`, { redirect: 'follow' });
+      const response = await fetch(`${import.meta.env.VITE_SCRIPT_URL}?path=v2-dashboard-summary`, { redirect: 'follow' });
 
       if (response.ok) {
         const data = await response.json();
@@ -81,31 +77,11 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const fetchChartData = async (isRefresh = false) => {
-    if (chartReadings && !isRefresh) return;
-
-    setChartLoading(true);
-    try {
-      const url = `${import.meta.env.VITE_SCRIPT_URL}?path=temperature-data`;
-      const response = await fetch(url, { redirect: 'follow' });
-      if (response.ok) {
-        const data = await response.json();
-        setChartReadings(data.readings);
-      } else {
-        console.error('Error fetching chart data');
-      }
-    } catch (error) {
-      console.error('Error fetching chart data:', error);
-    } finally {
-      setChartLoading(false);
-    }
-  };
-
   const fetchTableData = async (page: number, room: string) => {
     setTableLoading(true);
     try {
       const offset = (page - 1) * tableItemsPerPage;
-      let url = `${import.meta.env.VITE_SCRIPT_URL}?path=temperature-data&offset=${offset}&limit=${tableItemsPerPage}`;
+      let url = `${import.meta.env.VITE_SCRIPT_URL}?path=v2-temperature-data&offset=${offset}&limit=${tableItemsPerPage}`;
       if (room !== 'all') {
         url += `&roomId=${room}`;
       }
@@ -133,9 +109,6 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const handleTabClick = (tabId: string) => {
-    if ((tabId === 'charts' || tabId === 'checklist') && !chartReadings) {
-      fetchChartData();
-    }
     if (tabId === 'data' && tableReadings.length === 0) {
       fetchTableData(1, 'all');
     }
@@ -144,9 +117,6 @@ const Dashboard: React.FC = () => {
 
   const handleRefresh = () => {
     fetchDashboardData(true);
-    if (chartReadings) {
-      fetchChartData(true);
-    }
     if (tableReadings.length > 0) {
       fetchTableData(tableCurrentPage, tableSelectedRoom);
     }
@@ -308,13 +278,7 @@ const Dashboard: React.FC = () => {
             )}
 
             {activeTab === 'charts' && user?.role == 'admin' && (
-              <TemperatureChart
-                readings={chartReadings}
-                loading={chartLoading}
-                selectedRoom={chartSelectedRoom}
-                setSelectedRoom={setChartSelectedRoom}
-                rooms={rooms}
-              />
+              <TemperatureChart rooms={rooms} />
             )}
 
             {activeTab === 'data' && user?.role == 'admin' && (
@@ -332,11 +296,7 @@ const Dashboard: React.FC = () => {
             )}
 
             {activeTab === 'checklist' && user?.role == 'admin' && (
-              <ChecklistTable
-                readings={chartReadings || []}
-                loading={chartLoading}
-                rooms={rooms}
-              />
+              <ChecklistTable rooms={rooms} />
             )}
           </>
         )}
