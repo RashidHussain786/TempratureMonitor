@@ -55,7 +55,7 @@ const TemperatureCard: React.FC<TemperatureCardProps> = ({ room }) => {
   return (
     <div className={`bg-white rounded-lg shadow-md border-l-4 ${getStatusColor()} p-6 hover:shadow-lg transition-shadow duration-200`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Room {room.roomId}</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Office {room.roomId}</h3>
         {getStatusIcon()}
       </div>
       

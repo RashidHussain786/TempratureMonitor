@@ -113,26 +113,6 @@ function doGet(e) {
         lastSystemUpdate: new Date().toISOString()
     })).setMimeType(ContentService.MimeType.JSON);
 
-  } else if (path === 'dashboard-summary') {
-    const tempSheet = getSheet('temperatures');
-    const data = tempSheet.getDataRange().getValues();
-    const rooms = ['B206', 'B207', 'B208', 'B209', 'B210', 'Tent-2', 'Tent-3'];
-    const roomSummaries = rooms.map(roomId => {
-      const roomReadings = data.filter(row => row[1] === roomId);
-      const latestReading = roomReadings[roomReadings.length - 1];
-      let status = 'normal';
-      if (latestReading && latestReading[2] > 24) status = 'hot';
-      else if (latestReading && latestReading[2] < 18) status = 'cold';
-      
-      return {
-        roomId,
-        currentTemp: latestReading ? latestReading[2] : null,
-        status: latestReading ? status : 'no_data',
-        lastUpdate: latestReading ? latestReading[3] : null
-      };
-    });
-
-    return ContentService.createTextOutput(JSON.stringify({ rooms: roomSummaries, totalReadings: data.length - 1, lastSystemUpdate: new Date().toISOString() })).setMimeType(ContentService.MimeType.JSON);
   } else if (path === 'v2-temperature-data') {
     const { roomId, startDate, endDate, offset = '0', limit } = e.parameter;
 
@@ -150,37 +130,6 @@ function doGet(e) {
         readings: paginatedReadings,
         totalCount: totalCount
     })).setMimeType(ContentService.MimeType.JSON);
-  } else if (path === 'temperature-data') {
-    const tempSheet = getSheet('temperatures');
-    const offset = parseInt(e.parameter.offset || '0');
-    const limit = parseInt(e.parameter.limit || '3'); // Default limit
-
-    const lastRow = tempSheet.getLastRow();
-    const totalCount = lastRow > 1 ? lastRow - 1 : 0; // Exclude header row
-
-    let readings = [];
-    if (totalCount > 0) {
-      // Data starts from row 2 (after header)
-      const startRow = 2 + offset;
-      const numRows = Math.min(limit, totalCount - offset);
-
-      if (numRows > 0) {
-        const data = tempSheet.getRange(startRow, 1, numRows, 5).getValues();
-        readings = data.map(row => {
-          let status = 'normal';
-          if (row[2] > 24) status = 'hot';
-          else if (row[2] < 18) status = 'cold';
-          return {
-            id: row[0],
-            roomId: row[1],
-            temperature: row[2],
-            timestamp: row[3],
-            status: status
-          };
-        });
-      }
-    }
-    return ContentService.createTextOutput(JSON.stringify({ readings, totalCount })).setMimeType(ContentService.MimeType.JSON);
   } else if (path === 'rooms') {
     const rooms = ['B206', 'B207', 'B208', 'B209', 'B210', 'Tent-2', 'Tent-3'];
     return ContentService.createTextOutput(JSON.stringify({ rooms })).setMimeType(ContentService.MimeType.JSON);

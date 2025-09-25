@@ -71,9 +71,9 @@ const DataTable: React.FC<DataTableProps> = ({
               onChange={(e) => onRoomChange(e.target.value)}
               className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="all">All Rooms</option>
+              <option value="all">All Offices</option>
               {rooms.map(room => (
-                <option key={room} value={room}>Room {room}</option>
+                <option key={room} value={room}>Office {room}</option>
               ))}
             </select>
           </div>
@@ -85,7 +85,7 @@ const DataTable: React.FC<DataTableProps> = ({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Office ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temperature</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
@@ -94,7 +94,7 @@ const DataTable: React.FC<DataTableProps> = ({
             <tbody className="bg-white divide-y divide-gray-200">
               {readings.map((reading) => (
                 <tr key={reading.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Room {reading.roomId}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Office {reading.roomId}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.temperature}°C</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(reading.status)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(reading.timestamp).toLocaleString()}</td>

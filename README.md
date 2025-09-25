@@ -1,120 +1,86 @@
-# Temperature Monitoring System
+# Data Room Temperature Monitor
 
-A secure web application for monitoring temperature data in data rooms with JSON file storage and admin authentication.
+A modern, scalable web application for monitoring temperature data in data rooms. This project uses a React frontend and is powered by a Google Apps Script backend that uses a Google Sheet as its database.
 
 ## Features
 
-- **Secure Authentication**: Admin login with JWT tokens and session management
-- **Real-time Monitoring**: Track temperature data for 5 data rooms (B206-B210)
-- **Automated Data Collection**: Temperature readings recorded every 2 hours
-- **JSON File Storage**: Secure file-based data storage without database dependency
-- **Interactive Dashboard**: Real-time charts, tables, and room status cards
-- **Data Export**: CSV export functionality for temperature data
-- **Responsive Design**: Mobile-friendly interface with modern UI
+- **Secure Authentication**: User signup and login system.
+- **Live Dashboard**: An overview of the latest temperature status for all monitored rooms.
+- **Advanced Charting**: A filterable time-series chart to visualize temperature trends over various periods (24 hours, 7 days, 30 days).
+- **Daily Checklist**: A unique checklist-style view of daily temperatures in 2-hour time slots, with weekly pagination.
+- **Raw Data Table**: A paginated table to inspect individual temperature readings.
+- **Rich Excel Reports**: A powerful report generation tool that downloads a styled `.xlsx` Excel file with a custom title, bolded headers, and color-coded data. Users can select any room and date range for their report.
+- **Fully Responsive**: A clean, modern UI that works on any device.
 
-## Security Features
+## Tech Stack
 
-- JWT-based authentication with secure token management
-- Rate limiting for API endpoints and login attempts
-- Helmet.js for security headers
-- bcrypt password hashing
-- Session management with secure cookies
-- Protected JSON data files with proper access controls
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS
+- **Charting**: Chart.js with `chartjs-adapter-date-fns`
+- **Excel Generation**: ExcelJS
+- **Backend**: Google Apps Script
+- **Database**: Google Sheets
 
-## Installation & Setup
+## Project Setup
 
-1. **Clone and install dependencies**:
-   ```bash
-   npm install
-   ```
+To get this project running, you need to set up both the Google Sheets backend and the React frontend.
 
-2. **Start the application**:
-   ```bash
-   npm run dev
-   ```
-   This will start both the Express server (port 3001) and React client (port 5173).
+### 1. Backend Setup (Google Sheet & Apps Script)
 
-3. **Access the application**:
-   - Open http://localhost:5173 in your browser
-   - Use default admin credentials:
-     - Username: `admin`
-     - Password: `admin123`
+1.  **Create Google Sheet**: Create a new Google Sheet. The script will automatically create the necessary `users` and `temperatures` tabs.
+2.  **Get Sheet ID**: Copy the ID of your sheet from its URL. The ID is the long string of characters between `/d/` and `/edit`.
+    - `https://docs.google.com/spreadsheets/d/SHEET_ID_IS_HERE/edit`
+3.  **Open Apps Script**: In your Google Sheet, go to `Extensions` > `Apps Script`.
+4.  **Add Script Code**: Copy the entire content of `google-apps-script/main.gs` from this project and paste it into the Apps Script editor, replacing any boilerplate code.
+5.  **Set Sheet ID**: In the script editor, replace the placeholder value of the `SHEET_ID` constant with the ID you copied in step 2.
+6.  **Deploy as Web App**:
+    - Click the **Deploy** button and select **New deployment**.
+    - Click the gear icon next to "Select type" and choose **Web app**.
+    - For "Execute as", select **Me**.
+    - For "Who has access", select **Anyone** (this is necessary for the app to be able to call the script).
+    - Click **Deploy**.
+    - **Important**: Authorize the script's permissions when prompted.
+    - Copy the **Web app URL** that is provided after deployment. You will need this for the frontend.
+
+### 2. Frontend Setup (React)
+
+1.  **Clone Repository**: Clone this project to your local machine.
+2.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+3.  **Create Environment File**:
+    - In the root of the project, create a new file named `.env`.
+    - Add the Web App URL you copied from the backend deployment:
+      ```
+      VITE_SCRIPT_URL=YOUR_WEB_APP_URL_HERE
+      ```
+4.  **Run Development Server**:
+    ```bash
+    npm run dev
+    ```
+5.  **Access the Application**: Open your browser and navigate to the local URL provided by Vite (usually `http://localhost:5173`).
 
 ## Project Structure
 
 ```
-├── server.js              # Express server with API endpoints
-├── src/
-│   ├── components/         # React components
-│   │   ├── Dashboard.tsx   # Main dashboard component
-│   │   ├── LoginForm.tsx   # Authentication form
-│   │   ├── TemperatureCard.tsx  # Room temperature cards
-│   │   ├── TemperatureChart.tsx # Data visualization charts
-│   │   └── DataTable.tsx   # Raw data table with export
-│   ├── context/
-│   │   └── AuthContext.tsx # Authentication context
-│   └── App.tsx            # Main application component
-├── data/                  # JSON data storage (auto-created)
-│   ├── users.json         # User credentials
-│   └── temperature_data.json # Temperature readings
-└── README.md
+/home/rashid/Desktop/Project/DataRoom/
+├───.gitignore
+├───google-apps-script/
+│   └───main.gs            # Backend logic
+├───public/
+├───src/
+│   ├───components/         # React components
+│   │   ├───Dashboard.tsx
+│   │   ├───DataTable.tsx
+│   │   ├───ChecklistTable.tsx
+│   │   ├───TemperatureChart.tsx
+│   │   ├───ExportModal.tsx
+│   │   └───ExportForm.tsx
+│   ├───context/
+│   │   └───AuthContext.tsx
+│   ├───App.tsx
+│   └───main.tsx
+├───package.json
+├───README.md              # This file
+└───vite.config.ts
 ```
-
-## API Endpoints
-
-- `POST /api/login` - User authentication
-- `GET /api/dashboard-summary` - Dashboard overview data
-- `GET /api/temperature-data` - Temperature readings with filtering
-- `GET /api/rooms` - Available room list
-
-## Data Schema
-
-### Temperature Reading
-```json
-{
-  "id": "unique-id",
-  "roomId": "B206",
-  "temperature": 22.5,
-  "timestamp": "2025-01-11T10:00:00.000Z",
-  "status": "normal"
-}
-```
-
-### User Authentication
-```json
-{
-  "id": 1,
-  "username": "admin",
-  "password": "hashed-password",
-  "role": "admin"
-}
-```
-
-## Deployment Considerations
-
-1. **Environment Variables**: Set secure values for:
-   - `JWT_SECRET` - JWT signing secret
-   - `NODE_ENV` - Set to 'production'
-
-2. **HTTPS**: Enable HTTPS in production and update session cookies accordingly
-
-3. **Data Backup**: Implement regular backup of JSON data files
-
-4. **Monitoring**: Set up logging and monitoring for production use
-
-## Development Features
-
-- Hot reload for both client and server
-- Development temperature generation (every minute for testing)
-- Demo credentials included for easy testing
-- Comprehensive error handling and loading states
-
-## Security Notes
-
-- Default credentials should be changed in production
-- JWT secret must be updated for production use
-- Rate limiting is implemented for security
-- All API endpoints require authentication
-- JSON files are stored securely on the server filesystem
-
-This system provides a complete solution for temperature monitoring with enterprise-level security and a modern, responsive interface.

@@ -30,7 +30,7 @@ const ExportForm: React.FC<ExportFormProps> = ({ rooms, onExport, onClose }) => 
     <div className="space-y-4">
       <div>
         <label htmlFor="room-select" className="block text-sm font-medium text-gray-700 mb-1">
-          Room
+          Office
         </label>
         <select
           id="room-select"
@@ -39,7 +39,7 @@ const ExportForm: React.FC<ExportFormProps> = ({ rooms, onExport, onClose }) => 
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
         >
           {rooms.map(room => (
-            <option key={room} value={room}>Room {room}</option>
+            <option key={room} value={room}>Office {room}</option>
           ))}
         </select>
       </div>

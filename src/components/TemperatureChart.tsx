@@ -104,7 +104,7 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ rooms }) => {
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
       return {
-        label: `Room ${roomId}`,
+        label: `Office ${roomId}`,
         data: roomReadings.map(r => ({ x: new Date(r.timestamp).getTime(), y: r.temperature })),
         borderColor: colors[roomId as keyof typeof colors] || '#ccc',
         backgroundColor: (colors[roomId as keyof typeof colors] || '#ccc') + '20',
@@ -125,8 +125,8 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ rooms }) => {
       title: {
         display: true,
         text: selectedRoom === 'all'
-          ? 'Temperature Trends - All Rooms'
-          : `Temperature Trend - Room ${selectedRoom}`,
+          ? 'Temperature Trends - All Offices'
+          : `Temperature Trend - Office ${selectedRoom}`,
       },
     },
     scales: {
@@ -181,9 +181,9 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ rooms }) => {
           onChange={(e) => setSelectedRoom(e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
-          <option value="all">All Rooms</option>
+          <option value="all">All Offices</option>
           {rooms.map(room => (
-            <option key={room} value={room}>Room {room}</option>
+            <option key={room} value={room}>Office {room}</option>
           ))}
         </select>
       </div>

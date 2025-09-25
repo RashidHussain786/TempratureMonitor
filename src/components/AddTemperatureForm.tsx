@@ -38,7 +38,7 @@ const AddTemperatureForm: React.FC<AddTemperatureFormProps> = ({ onAddReadings, 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {rooms.map(roomId => (
             <div key={roomId} className="flex flex-col">
-              <label htmlFor={`temp-${roomId}`} className="font-semibold mb-1">{`Room ${roomId}`}</label>
+              <label htmlFor={`temp-${roomId}`} className="font-semibold mb-1">{`Office ${roomId}`}</label>
               <input
                 id={`temp-${roomId}`}
                 type="number"
