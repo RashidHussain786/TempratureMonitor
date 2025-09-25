@@ -15,11 +15,11 @@ const LoginForm: React.FC<{ onSwitchToSignup: () => void }> = ({ onSwitchToSignu
     setLoading(true);
 
     const success = await login(username, password);
-    
+
     if (!success) {
       setError('Invalid username or password');
     }
-    
+
     setLoading(false);
   };
 
@@ -98,12 +98,6 @@ const LoginForm: React.FC<{ onSwitchToSignup: () => void }> = ({ onSwitchToSignu
               Sign up
             </button>
           </p>
-        </div>
-
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600 font-medium mb-2">Demo Credentials:</p>
-          <p className="text-sm text-gray-500">Username: admin</p>
-          <p className="text-sm text-gray-500">Password: admin123</p>
         </div>
       </div>
     </div>

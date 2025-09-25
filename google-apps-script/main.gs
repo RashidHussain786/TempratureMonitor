@@ -77,13 +77,18 @@ function doGet(e) {
 
       if (numRows > 0) {
         const data = tempSheet.getRange(startRow, 1, numRows, 5).getValues();
-        readings = data.map(row => ({
-          id: row[0],
-          roomId: row[1],
-          temperature: row[2],
-          timestamp: row[3],
-          status: row[4]
-        }));
+        readings = data.map(row => {
+          let status = 'normal';
+          if (row[2] > 24) status = 'hot';
+          else if (row[2] < 18) status = 'cold';
+          return {
+            id: row[0],
+            roomId: row[1],
+            temperature: row[2],
+            timestamp: row[3],
+            status: status
+          };
+        });
       }
     }
     return ContentService.createTextOutput(JSON.stringify({ readings, totalCount })).setMimeType(ContentService.MimeType.JSON);

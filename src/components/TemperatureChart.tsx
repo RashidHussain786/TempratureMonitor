@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,7 +11,6 @@ import {
   TimeScale,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-
 
 ChartJS.register(
   CategoryScale,
@@ -32,39 +31,21 @@ interface TemperatureReading {
   status: string;
 }
 
-const TemperatureChart: React.FC = () => {
-  const [readings, setReadings] = useState<TemperatureReading[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
+interface TemperatureChartProps {
+  readings: TemperatureReading[] | null;
+  loading: boolean;
+  selectedRoom: string;
+  setSelectedRoom: (room: string) => void;
+  rooms: string[];
+}
 
-  const ROOMS = ['B206', 'B207', 'B208', 'B209', 'B210', 'Tent-2', 'Tent-3'];
-
-  useEffect(() => {
-    fetchTemperatureData();
-  }, [selectedRoom]);
-
-  const fetchTemperatureData = async () => {
-    try {
-      const url = `${import.meta.env.VITE_SCRIPT_URL}?path=temperature-data`;
-
-      const response = await fetch(url, { redirect: 'follow' });
-
-      if (response.ok) {
-        const data = await response.json();
-        let readings = data.readings;
-        if (selectedRoom !== 'all') {
-          readings = readings.filter(r => r.roomId === selectedRoom);
-        }
-        setReadings(readings);
-      }
-    } catch (error) {
-      console.error('Error fetching temperature data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const TemperatureChart: React.FC<TemperatureChartProps> = ({ readings, loading, selectedRoom, setSelectedRoom, rooms }) => {
 
   const getChartData = () => {
+    if (!readings) {
+      return { labels: [], datasets: [] };
+    }
+
     const colors = {
       B206: 'rgb(239, 68, 68)',   // red
       B207: 'rgb(59, 130, 246)',  // blue
@@ -93,7 +74,7 @@ const TemperatureChart: React.FC = () => {
       };
     }
 
-    const datasets = ROOMS.map(roomId => {
+    const datasets = rooms.map(roomId => {
       const roomReadings = readings
         .filter(r => r.roomId === roomId)
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
@@ -173,7 +154,7 @@ const TemperatureChart: React.FC = () => {
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="all">All Rooms</option>
-          {ROOMS.map(room => (
+          {rooms.map(room => (
             <option key={room} value={room}>Room {room}</option>
           ))}
         </select>

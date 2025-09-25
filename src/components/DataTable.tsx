@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Download, Filter } from 'lucide-react';
 
 interface TemperatureReading {
@@ -9,45 +9,29 @@ interface TemperatureReading {
   status: string;
 }
 
-const DataTable: React.FC = () => {
-  const [readings, setReadings] = useState<TemperatureReading[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRoom, setSelectedRoom] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+interface DataTableProps {
+  readings: TemperatureReading[];
+  loading: boolean;
+  totalCount: number;
+  currentPage: number;
+  selectedRoom: string;
+  onPageChange: (page: number) => void;
+  onRoomChange: (room: string) => void;
+  itemsPerPage: number;
+  rooms: string[];
+}
 
-  const itemsPerPage = 5;
-  const ROOMS = ['B206', 'B207', 'B208', 'B209', 'B210', 'Tent-2', 'Tent-3'];
-
-  useEffect(() => {
-    fetchTemperatureData(currentPage, selectedRoom);
-  }, [currentPage, selectedRoom]);
-
-  const fetchTemperatureData = async (page: number, room: string) => {
-    setLoading(true);
-    try {
-      const offset = (page - 1) * itemsPerPage;
-      let url = `${import.meta.env.VITE_SCRIPT_URL}?path=temperature-data&offset=${offset}&limit=${itemsPerPage}`;
-
-      const response = await fetch(url, { redirect: 'follow' });
-
-      if (response.ok) {
-        const data = await response.json();
-        let filtered = data.readings;
-
-        if (room !== 'all') {
-          filtered = filtered.filter((r: TemperatureReading) => r.roomId === room);
-        }
-
-        setReadings(filtered);
-        setTotalCount(data.totalCount);
-      }
-    } catch (error) {
-      console.error('Error fetching temperature data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const DataTable: React.FC<DataTableProps> = ({
+  readings,
+  loading,
+  totalCount,
+  currentPage,
+  selectedRoom,
+  onPageChange,
+  onRoomChange,
+  itemsPerPage,
+  rooms,
+}) => {
 
   const exportData = () => {
     const csvContent = [
@@ -87,7 +71,7 @@ const DataTable: React.FC = () => {
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-  if (loading) {
+  if (loading && readings.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-center h-64">
@@ -106,14 +90,11 @@ const DataTable: React.FC = () => {
             <Filter className="h-4 w-4 text-gray-500" />
             <select
               value={selectedRoom}
-              onChange={(e) => {
-                setSelectedRoom(e.target.value);
-                setCurrentPage(1); // reset to page 1 on filter change
-              }}
+              onChange={(e) => onRoomChange(e.target.value)}
               className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Rooms</option>
-              {ROOMS.map(room => (
+              {rooms.map(room => (
                 <option key={room} value={room}>Room {room}</option>
               ))}
             </select>
@@ -128,27 +109,34 @@ const DataTable: React.FC = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temperature</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {readings.map((reading) => (
-              <tr key={reading.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Room {reading.roomId}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.temperature}°C</td>
-                <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(reading.status)}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(reading.timestamp).toLocaleString()}</td>
+      <div className="relative">
+        <div className={`overflow-x-auto ${loading ? 'opacity-50' : ''}`}>
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temperature</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {readings.map((reading) => (
+                <tr key={reading.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Room {reading.roomId}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.temperature}°C</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(reading.status)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(reading.timestamp).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {loading && readings.length > 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
       </div>
 
       {/* Pagination */}
@@ -159,8 +147,8 @@ const DataTable: React.FC = () => {
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1 || loading}
               className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
@@ -172,7 +160,8 @@ const DataTable: React.FC = () => {
                 return (
                   <button
                     key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
+                    onClick={() => onPageChange(pageNum)}
+                    disabled={loading}
                     className={`px-3 py-1 rounded-md text-sm ${currentPage === pageNum
                       ? 'bg-blue-600 text-white'
                       : 'border border-gray-300 hover:bg-gray-50'
@@ -185,8 +174,8 @@ const DataTable: React.FC = () => {
             </div>
 
             <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages || loading}
               className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
