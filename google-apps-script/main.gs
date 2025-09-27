@@ -29,7 +29,7 @@ function getSheet(name) {
   if (!sheet) {
     sheet = spreadsheet.insertSheet(name);
     if (name === 'users') {
-      sheet.appendRow(['username', 'password', 'role']);
+      sheet.appendRow(['username', 'password', 'role', 'name', 'email', 'phoneNo']);
     } else if (name === 'temperatures') {
       sheet.appendRow(['id', 'roomId', 'temperature', 'timestamp', 'status']);
     }
@@ -42,6 +42,7 @@ function getTemperatureReadings(filters = {}) {
   const sheet = getSheet('temperatures');
   const allData = sheet.getDataRange().getValues();
   const headers = allData.shift(); // Remove header row
+  allData.reverse(); // Reverse the array to show newest first
 
   let filteredData = allData;
 
@@ -155,8 +156,8 @@ function doPost(e) {
       }
     }
     return ContentService.createTextOutput(JSON.stringify({ error: 'Invalid credentials' })).setMimeType(ContentService.MimeType.JSON);
-  } else if (path === 'signup') {
-    const { username, password } = contents;
+  } else if (path === 'addUser') {
+    const { username, password, name, email, phoneNo } = contents;
     const hashedPassword = hashPassword(password);
     const userSheet = getSheet('users');
     const users = userSheet.getDataRange().getValues();
@@ -165,7 +166,7 @@ function doPost(e) {
         return ContentService.createTextOutput(JSON.stringify({ error: 'User already exists' })).setMimeType(ContentService.MimeType.JSON);
       }
     }
-    userSheet.appendRow([username, hashedPassword, 'user']);
+    userSheet.appendRow([username, hashedPassword, 'user', name, email, phoneNo]);
     return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
   } else if (path === 'temperature-readings') {
     const { readings } = contents;

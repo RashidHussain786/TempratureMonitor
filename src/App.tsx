@@ -1,17 +1,9 @@
-import React, { useState, useEffect } from 'react';
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/Dashboard';
-import SignupForm from './components/SignupForm';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 function AppContent() {
   const { user, loading } = useAuth();
-  const [showSignup, setShowSignup] = useState(false);
-
-  const handleSignupSuccess = () => {
-    setShowSignup(false);
-    // Optionally, show a success message or redirect to login
-  };
 
   if (loading) {
     return (
@@ -34,11 +26,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {showSignup ? (
-        <SignupForm onSignupSuccess={handleSignupSuccess} onSwitchToLogin={() => setShowSignup(false)} />
-      ) : (
-        <LoginForm onSwitchToSignup={() => setShowSignup(true)} />
-      )}
+      <LoginForm />
     </div>
   );
 }
