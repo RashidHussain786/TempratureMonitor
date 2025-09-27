@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Thermometer, Clock, Database, RefreshCw, PlusCircle, ClipboardCheck } from 'lucide-react';
+import { LogOut, Thermometer, Clock, Database, RefreshCw, PlusCircle, ClipboardCheck, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import TemperatureCard from './TemperatureCard';
 import TemperatureChart from './TemperatureChart';
 import DataTable from './DataTable';
 import AddTemperatureForm from './AddTemperatureForm';
 import ChecklistTable from './ChecklistTable';
+
+
+import AddUserForm from './AddUserForm';
 
 
 interface RoomSummary {
@@ -36,6 +39,7 @@ const Dashboard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [rooms, setRooms] = useState<string[]>(['B206', 'B207', 'B208', 'B209', 'B210', 'Tent-2', 'Tent-3']);
 
   const [tableReadings, setTableReadings] = useState<TemperatureReading[]>([]);
@@ -155,6 +159,11 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleDone = () => {
+    setShowAddUserForm(false);
+  };
+
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -183,6 +192,15 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-4">
+              {user?.role === 'admin' && (
+                <button
+                  onClick={() => setShowAddUserForm(!showAddUserForm)}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors duration-200"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>Add User</span>
+                </button>
+              )}
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
                 className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors duration-200"
@@ -217,86 +235,94 @@ const Dashboard: React.FC = () => {
       </header>
 
       {/* Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            {[
-              { id: 'overview', name: 'Overview', icon: Thermometer },
-              { id: 'charts', name: 'Temperature Charts', icon: Clock },
-              { id: 'data', name: 'Raw Data', icon: Database },
-              { id: 'checklist', name: 'Checklist', icon: ClipboardCheck }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
-                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                <tab.icon className="h-4 w-4" />
-                <span>{tab.name}</span>
-              </button>
-            ))}
-          </nav>
+      {!showAddUserForm && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              {[
+                { id: 'overview', name: 'Overview', icon: Thermometer },
+                { id: 'charts', name: 'Temperature Charts', icon: Clock },
+                { id: 'data', name: 'Raw Data', icon: Database },
+                { id: 'checklist', name: 'Checklist', icon: ClipboardCheck }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabClick(tab.id)}
+                  className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                  <tab.icon className="h-4 w-4" />
+                  <span>{tab.name}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {showAddForm && (
-          <div className="mb-6">
-            <AddTemperatureForm onAddReadings={handleAddReadings} rooms={rooms} />
-          </div>
-        )}
-
-        {dashboardData && (
+        {showAddUserForm ? (
+          <AddUserForm onDone={handleDone} />
+        ) : (
           <>
-            {/* System Status */}
-            <div className="mb-6 bg-white rounded-lg shadow p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">System Status</h2>
-                  <p className="text-sm text-gray-500">
-                    Last updated: {new Date(dashboardData.lastSystemUpdate).toLocaleString()}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">Total Readings</p>
-                  <p className="text-2xl font-bold text-blue-600">{dashboardData.totalReadings.toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Tab Content */}
-            {activeTab === 'overview' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                {dashboardData.rooms.map((room) => (
-                  <TemperatureCard key={room.roomId} room={room} />
-                ))}
+            {showAddForm && (
+              <div className="mb-6">
+                <AddTemperatureForm onAddReadings={handleAddReadings} rooms={rooms} />
               </div>
             )}
 
-            {activeTab === 'charts' && user?.role == 'admin' && (
-              <TemperatureChart rooms={rooms} />
-            )}
+            {dashboardData && (
+              <>
+                {/* System Status */}
+                <div className="mb-6 bg-white rounded-lg shadow p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">System Status</h2>
+                      <p className="text-sm text-gray-500">
+                        Last updated: {new Date(dashboardData.lastSystemUpdate).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">Total Readings</p>
+                      <p className="text-2xl font-bold text-blue-600">{dashboardData.totalReadings.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
 
-            {activeTab === 'data' && user?.role == 'admin' && (
-              <DataTable
-                readings={tableReadings}
-                loading={tableLoading}
-                totalCount={tableTotalCount}
-                currentPage={tableCurrentPage}
-                selectedRoom={tableSelectedRoom}
-                onPageChange={handleTablePageChange}
-                onRoomChange={handleTableRoomChange}
-                itemsPerPage={tableItemsPerPage}
-                rooms={rooms}
-              />
-            )}
+                {/* Tab Content */}
+                {activeTab === 'overview' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                    {dashboardData.rooms.map((room) => (
+                      <TemperatureCard key={room.roomId} room={room} />
+                    ))}
+                  </div>
+                )}
 
-            {activeTab === 'checklist' && user?.role == 'admin' && (
-              <ChecklistTable rooms={rooms} />
+                {activeTab === 'charts' && user?.role == 'admin' && (
+                  <TemperatureChart rooms={rooms} />
+                )}
+
+                {activeTab === 'data' && user?.role == 'admin' && (
+                  <DataTable
+                    readings={tableReadings}
+                    loading={tableLoading}
+                    totalCount={tableTotalCount}
+                    currentPage={tableCurrentPage}
+                    selectedRoom={tableSelectedRoom}
+                    onPageChange={handleTablePageChange}
+                    onRoomChange={handleTableRoomChange}
+                    itemsPerPage={tableItemsPerPage}
+                    rooms={rooms}
+                  />
+                )}
+
+                {activeTab === 'checklist' && user?.role == 'admin' && (
+                  <ChecklistTable rooms={rooms} />
+                )}
+              </>
             )}
           </>
         )}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Shield, Thermometer, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const LoginForm: React.FC<{ onSwitchToSignup: () => void }> = ({ onSwitchToSignup }) => {
+const LoginForm: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -90,15 +90,6 @@ const LoginForm: React.FC<{ onSwitchToSignup: () => void }> = ({ onSwitchToSignu
             )}
           </button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <button onClick={onSwitchToSignup} className="font-medium text-indigo-600 hover:text-indigo-500">
-              Sign up
-            </button>
-          </p>
-        </div>
       </div>
     </div>
   );
